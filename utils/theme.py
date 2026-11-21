@@ -87,6 +87,9 @@ input::placeholder, textarea::placeholder {{ color: #8A93A3 !important; -webkit-
 [role="listbox"], [role="option"], [role="dialog"], [data-testid="stSelectboxVirtualDropdown"] {{
   background: var(--ila-surface) !important; color: var(--ila-ink) !important; }}
 [role="option"]:hover, [role="option"][data-focused="true"] {{ background: var(--ila-orange-soft) !important; }}
+[data-testid="stMain"] [data-testid="stTabs"] [data-baseweb="tab-highlight"],
+[data-testid="stMain"] [role="tablist"] [data-testid="stTabHighlight"] {{ background: var(--ila-orange) !important; }}
+[data-testid="stMain"] input[type="checkbox"], [data-testid="stMain"] input[type="radio"] {{ accent-color: var(--ila-orange); }}
 [data-baseweb="popover"], [data-baseweb="popover"] ul, [data-baseweb="menu"], [role="listbox"] {{
   background: var(--ila-surface) !important; color: var(--ila-ink) !important; }}
 [data-baseweb="popover"] li, [role="option"] {{ color: var(--ila-ink) !important; }}
@@ -101,10 +104,15 @@ input::placeholder, textarea::placeholder {{ color: #8A93A3 !important; -webkit-
 .stButton > button:hover, .stDownloadButton > button:hover, .stFormSubmitButton > button:hover, .stLinkButton > a:hover {{
   border-color: var(--ila-orange) !important; color: var(--ila-orange-dark) !important; }}
 .stButton > button[kind="primary"], .stFormSubmitButton > button[kind="primaryFormSubmit"],
-.stDownloadButton > button[kind="primary"], .stLinkButton > a[kind="primary"] {{
+.stDownloadButton > button[kind="primary"], .stLinkButton > a[kind="primary"],
+[data-testid="stBaseButton-primary"], [data-testid="stBaseButton-primaryFormSubmit"],
+[data-testid="stBaseLinkButton-primary"] {{
   background: var(--ila-orange) !important; border-color: var(--ila-orange) !important; color: #FFFFFF !important; }}
+[data-testid="stBaseButton-primary"] p, [data-testid="stBaseButton-primaryFormSubmit"] p,
+[data-testid="stBaseLinkButton-primary"] p,
 .stButton > button[kind="primary"] p, .stFormSubmitButton > button[kind="primaryFormSubmit"] p,
 .stLinkButton > a[kind="primary"] p {{ color: #FFFFFF !important; }}
+[data-testid="stBaseButton-primary"]:hover, [data-testid="stBaseButton-primaryFormSubmit"]:hover,
 .stButton > button[kind="primary"]:hover, .stFormSubmitButton > button[kind="primaryFormSubmit"]:hover {{
   background: var(--ila-orange-dark) !important; border-color: var(--ila-orange-dark) !important; color: #FFFFFF !important; }}
 
@@ -122,7 +130,9 @@ div[data-testid="stMetric"] {{ border: 1px solid var(--ila-line); border-radius:
 [data-testid="stMetricValue"], [data-testid="stMetricLabel"] p {{ color: var(--ila-ink) !important; }}
 
 /* ---------- Menú lateral azul marino ---------- */
-[data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {{ background: var(--ila-navy) !important; }}
+[data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child, [data-testid="stSidebarContent"],
+[data-testid="stSidebarHeader"], [data-testid="stSidebarUserContent"], [data-testid="stSidebarNav"],
+[data-testid="stSidebarNavItems"] {{ background: var(--ila-navy) !important; }}
 [data-testid="stSidebar"] {{ border-right: 0; }}
 [data-testid="stSidebar"] *, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{
   color: #E8EEF8 !important; }}
@@ -143,7 +153,9 @@ div[data-testid="stMetric"] {{ border: 1px solid var(--ila-line); border-radius:
 [data-testid="stSidebar"] hr {{ border-color: #23457E !important; }}
 
 /* ---------- Componentes propios ---------- */
-.block-container {{ padding-top: 3.2rem; padding-bottom: 3rem; max-width: 1400px; }}
+/* Espacio para la barra superior (en Streamlit Cloud es más alta que en local) */
+.block-container, [data-testid="stMainBlockContainer"] {{ padding-top: 5rem !important; padding-bottom: 3rem;
+  max-width: 1400px; }}
 .ila-eyebrow {{ font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ila-orange-dark) !important;
   font-weight: 700; margin-bottom: .15rem; }}
 .ila-sub {{ color: var(--ila-ink-2) !important; font-size: .92rem; margin-top: -.4rem; margin-bottom: 1.2rem; }}
