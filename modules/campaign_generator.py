@@ -85,7 +85,10 @@ def _editor(pid: int) -> None:
     st.markdown(f"**Estado:** {meta['status']} · **Generado por:** {meta['by']} · **Plataforma:** {meta['platform']}")
     st.caption(content.get("status_note", "Contenido generado. No ha sido publicado."))
 
-    tab_c, tab_v, tab_x = st.tabs(["Contenido de campaña", "Variantes creativas", "Aprobar y exportar"])
+    tab_c, tab_v, tab_x, tab_img = st.tabs(["Contenido de campaña", "Variantes creativas", "Aprobar y exportar",
+                                            "Imágenes y historias"])
+    with tab_img:
+        _creatives(pid, meta, variants)
     with tab_c:
         with st.form(f"plan_content_{pid}"):
             name = st.text_input("Nombre de campaña", value=meta["name"])
@@ -172,3 +175,65 @@ def _editor(pid: int) -> None:
                 repo.delete_plan(s, pid)
             st.session_state.pop("plan_id", None)
             st.rerun()
+
+
+def _creatives(pid: int, meta: dict, variants: list[dict]) -> None:
+    """Genera publicación (1080×1350) e historia (1080×1920) por cada variante aprobada."""
+    from services import creatives
+
+    st.caption("Crea las imágenes de tus anuncios con el texto de cada variante aprobada, tus colores, tu foto y "
+               "tu logo. Descárgalas y súbelas a Meta Ads Manager o publícalas en tus redes.")
+    approved = [v for v in variants if v["status"] == "Aprobada"]
+    if not approved:
+        st.info("Primero marca al menos una variante como «Aprobada» en la pestaña «Variantes creativas».")
+        return
+    settings = data.settings()
+    with st.form(f"creatives_{pid}"):
+        c1, c2 = st.columns(2)
+        photo = c1.file_uploader("Foto (opcional): tú, tu equipo o una familia", type=["jpg", "jpeg", "png"],
+                                 help="Usa fotos propias o con derechos de uso. Si no subes foto, se usa un fondo "
+                                      "con tus colores.")
+        logo = c2.file_uploader("Logo (opcional, PNG con fondo transparente)", type=["png"])
+        c3, c4 = st.columns(2)
+        brand = c3.text_input("Nombre que aparece arriba (si no hay logo)", value=settings.get("company_name", ""))
+        eyebrow = c4.text_input("Texto pequeño sobre el titular", value=meta["product"])
+        opts = {v["id"]: f"{v['code']} · {v['angle']}" for v in approved}
+        chosen = st.multiselect("Variantes", list(opts), default=list(opts), format_func=lambda i: opts[i])
+        fmts = st.multiselect("Formatos", list(creatives.FORMATS), default=list(creatives.FORMATS),
+                              format_func=lambda k: creatives.FORMATS[k]["label"])
+        ok = st.form_submit_button("Crear imágenes", type="primary")
+    if ok:
+        if not chosen or not fmts:
+            st.error("Elige al menos una variante y un formato.")
+            return
+        photo_b = photo.getvalue() if photo else None
+        logo_b = logo.getvalue() if logo else None
+        images, errors = {}, []
+        with st.spinner("Creando imágenes…"):
+            for v in approved:
+                if v["id"] not in chosen:
+                    continue
+                for f in fmts:
+                    try:
+                        images[f"{v['code']}_{f}.png"] = creatives.render(
+                            f, v["headline"], v["description"], v["cta"], eyebrow=eyebrow.strip(),
+                            brand_name=brand.strip(), photo=photo_b, logo=logo_b)
+                    except ValueError as e:
+                        errors.append(f"{v['code']}: {e}")
+                    except Exception:  # imagen dañada o formato no soportado
+                        errors.append(f"{v['code']}: no se pudo leer la foto o el logo; prueba con otro archivo.")
+        st.session_state[f"ila_imgs_{pid}"] = images
+        for e in errors:
+            st.error(e)
+    images = st.session_state.get(f"ila_imgs_{pid}") or {}
+    if not images:
+        return
+    st.download_button("Descargar todas (ZIP)", creatives.zip_images(images), f"imagenes_campana_{pid}.zip",
+                       "application/zip", type="primary")
+    cols = st.columns(3)
+    for i, (name, png) in enumerate(images.items()):
+        with cols[i % 3]:
+            st.image(png, caption=name, use_container_width=True)
+            st.download_button("Descargar PNG", png, name, "image/png", key=f"dl_{pid}_{name}")
+    st.caption("Revisa cada imagen antes de publicarla. Las historias dejan libre la parte superior e inferior, "
+               "donde Instagram y Facebook muestran sus botones.")
