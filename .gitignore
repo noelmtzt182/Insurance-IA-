@@ -1,0 +1,23 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# --- Secretos (nunca subir) ---
+.streamlit/secrets.toml
+.env
+
+# --- Datos locales SQLite ---
+data/*.db
+data/*.db-*
+data/*.sqlite
+
+# --- Sistema ---
+.DS_Store
+.idea/
+.vscode/
+
+# --- Editor ---
+.claude/
