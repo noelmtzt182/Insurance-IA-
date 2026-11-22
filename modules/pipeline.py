@@ -15,6 +15,7 @@ from utils.components import csv_bytes, demo_banner, empty_state, flash, kpi_row
 from utils.config import ACTIVITY_KINDS, ALL_STAGES, today_mx
 
 TEMPLATE_BY_ALERT = {
+    "Solicitud de cita por confirmar": "Confirmación de cita",
     "Lead nuevo sin contactar": "Primer contacto",
     "Cotización sin respuesta": "Seguimiento de cotización",
     "Cita pendiente": "Confirmación de cita",
@@ -84,8 +85,15 @@ def _alert_card(r: dict) -> None:
         settings = data.settings()
         if r["Consentimiento"]:
             tpl = TEMPLATE_BY_ALERT.get(r["Alerta"], "Seguimiento")
-            msg = render_message(tpl, nombre=r["Prospecto"], asesor=settings.get("advisor_name"),
-                                 empresa=settings.get("company_name"), producto=str(r["Producto"]).lower())
+            if r["Alerta"] == "Solicitud de cita por confirmar":
+                first = str(r["Prospecto"]).split(" ")[0]
+                fecha, _, horario = str(r["Cita solicitada"] or "").partition(" · ")
+                msg = (f"Hola {first}, soy {settings.get('advisor_name')} de {settings.get('company_name')}. Recibí tu "
+                       f"solicitud de asesoría gratuita para el {fecha} en horario de {horario.lower()}. "
+                       "¿A qué hora exacta te queda mejor que te llame? Así te la confirmo.")
+            else:
+                msg = render_message(tpl, nombre=r["Prospecto"], asesor=settings.get("advisor_name"),
+                                     empresa=settings.get("company_name"), producto=str(r["Producto"]).lower())
             link = wa_link(r["Teléfono"], msg)
             if link:
                 st.link_button(f"Abrir WhatsApp ({tpl})", link)

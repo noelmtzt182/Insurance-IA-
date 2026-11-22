@@ -7,7 +7,15 @@ from typing import Optional
 import streamlit as st
 
 from services import diagnosis as dx
-from utils.config import BUDGET_RANGES, PRODUCT_GMM, PRODUCT_VIDA, PRODUCTS, SEGMENT_OTHER, SEGMENTS, SOURCES, today_mx
+from utils.config import (APPOINTMENT_SLOTS, BUDGET_RANGES, PRODUCT_GMM, PRODUCT_VIDA, PRODUCTS, SEGMENT_OTHER,
+                          SEGMENTS, SOURCES, today_mx)
+
+
+def next_business_day(days: int = 1):
+    d = today_mx() + timedelta(days=days)
+    while d.weekday() >= 5:  # sábado o domingo
+        d += timedelta(days=1)
+    return d
 
 
 def lead_form(key: str, *, public: bool, settings: dict, default_source: Optional[str] = None,
@@ -39,9 +47,19 @@ def lead_form(key: str, *, public: bool, settings: dict, default_source: Optiona
             opts = {None: "Sin campaña"} | (campaigns or {})
             campaign_id = c10.selectbox("Campaña", list(opts), format_func=lambda k: opts[k])
 
-        q1, q2 = st.columns(2)
-        quote = q1.checkbox("Quiero recibir una cotización", value=True)
-        contact = q2.checkbox("Quiero que un asesor me contacte", value=True)
+        appt_date = appt_slot = None
+        if public:
+            st.markdown("**📅 Agenda tu asesoría gratuita (20 minutos, por llamada o videollamada)**")
+            a1, a2 = st.columns(2)
+            appt_date = a1.date_input("Día que prefieres", value=next_business_day(), min_value=today_mx(),
+                                      max_value=today_mx() + timedelta(days=30), format="DD/MM/YYYY")
+            appt_slot = a2.selectbox("Horario", APPOINTMENT_SLOTS)
+            quote = st.checkbox("También quiero recibir una cotización", value=True)
+            contact = True
+        else:
+            q1, q2 = st.columns(2)
+            quote = q1.checkbox("Quiero recibir una cotización", value=True)
+            contact = q2.checkbox("Quiero que un asesor me contacte", value=True)
 
         if public:
             with st.expander("Leer aviso de privacidad"):
@@ -53,7 +71,7 @@ def lead_form(key: str, *, public: bool, settings: dict, default_source: Optiona
             st.caption("Captura interna: confirma que el prospecto otorgó su consentimiento y conoce el aviso de privacidad.")
             consent_contact = st.checkbox("El prospecto autorizó ser contactado (consentimiento verbal o escrito documentado)")
             consent_privacy = st.checkbox(f"Se informó al prospecto el aviso de privacidad vigente ({settings['privacy_version']})")
-        submitted = st.form_submit_button("Enviar solicitud" if public else "Guardar lead", type="primary",
+        submitted = st.form_submit_button("Agendar mi asesoría gratuita" if public else "Guardar lead", type="primary",
                                           use_container_width=public)
     if not submitted:
         return None
@@ -62,6 +80,7 @@ def lead_form(key: str, *, public: bool, settings: dict, default_source: Optiona
         "budget_range": budget, "est_purchase_date": est, "source": source, "campaign_id": campaign_id,
         "segment": segment if segment in SEGMENTS else None, "quote_requested": quote, "contact_requested": contact,
         "consent_contact": consent_contact, "consent_privacy": consent_privacy,
+        "appt_date": appt_date, "appt_slot": appt_slot,
     }
 
 

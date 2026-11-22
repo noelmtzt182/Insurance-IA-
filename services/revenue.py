@@ -13,6 +13,7 @@ import pandas as pd
 from services.metrics import (
     campaign_table,
     conversion_by,
+    is_appointment,
     is_policy,
     is_quoted,
     overall_acquisition,
@@ -31,7 +32,14 @@ def kpis(leads: pd.DataFrame, camps: pd.DataFrame, quotes: pd.DataFrame) -> dict
     premium = float(pol["policy_premium"].fillna(0).sum()) if len(pol) else 0.0
     n_quotes = len(quotes) if quotes is not None and len(quotes) else int(is_quoted(leads).sum()) if len(leads) else 0
     inv = acq["investment"]
+    appt = is_appointment(leads) if len(leads) else None
+    n_appt = int(appt.sum()) if appt is not None else 0
+    appt_quoted = int((appt & is_quoted(leads)).sum()) if appt is not None else 0
     return {
+        "appointments": n_appt,
+        "appointment_rate": safe_div(n_appt, len(leads), 100),
+        "cost_per_appointment": acq["cost_per_appt"],
+        "appt_to_quote": safe_div(appt_quoted, n_appt, 100),
         "prospects": len(leads),
         "quotes": n_quotes,
         "quoted_leads": int(is_quoted(leads).sum()) if len(leads) else 0,

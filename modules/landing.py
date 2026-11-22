@@ -14,7 +14,7 @@ from database.session import session_scope
 from modules.forms import diagnostic_form, lead_form, show_diagnosis
 from services.capture import attribution_from_params, ingest
 from services.whatsapp import wa_link
-from utils.config import PRODUCT_GMM, PRODUCT_VIDA, PRODUCTS, UTM_SOURCE_MAP
+from utils.config import APPOINTMENT_SLOTS, PRODUCT_GMM, PRODUCT_VIDA, PRODUCTS, UTM_SOURCE_MAP
 from utils.data import bump
 
 MAX_SUBMISSIONS_PER_SESSION = 3
@@ -44,7 +44,9 @@ def render() -> None:
         '<div class="ila-hero-title">Protege lo que más importa.<br>'
         '<span class="ila-hero-accent">Descubre qué seguro se adapta a tus necesidades.</span></div>'
         '<div class="ila-hero-sub">Asesoría profesional en seguro de vida y gastos médicos mayores. '
-        'Diagnóstico gratuito y sin compromiso.</div></div>', unsafe_allow_html=True)
+        'Diagnóstico gratuito y sin compromiso.</div>'
+        '<div class="ila-hero-sub" style="margin-top:.6rem"><b class="ila-hero-accent">📅 Agenda tu asesoría '
+        'gratuita de 20 minutos</b>: elige día y horario en el formulario de abajo.</div></div>', unsafe_allow_html=True)
 
     c1, c2 = st.columns(2)
     with c1:
@@ -65,14 +67,20 @@ def render() -> None:
         if link:
             st.link_button("💬 Escríbenos por WhatsApp", link)
 
-    tab_form, tab_dx, tab_chat, tab_faq = st.tabs(["Solicitar asesoría / cotización", "Diagnóstico gratuito",
+    tab_form, tab_dx, tab_chat, tab_faq = st.tabs(["📅 Agenda tu asesoría gratuita", "Diagnóstico gratuito",
                                                    "Pregunta a nuestro asistente", "Preguntas frecuentes"])
 
     with tab_form:
         submitted_n = st.session_state.get("public_submissions", 0)
         if st.session_state.get("public_lead_id"):
-            st.success("¡Gracias! Recibimos tu solicitud. Un asesor se pondrá en contacto contigo por el medio que "
-                       "autorizaste. Mientras tanto, puedes completar tu diagnóstico gratuito en la pestaña de al lado.")
+            appt = st.session_state.get("public_appt")
+            if appt:
+                st.success(f"¡Listo! Solicitaste tu asesoría gratuita para el **{appt['fecha']}**, en horario de "
+                           f"**{appt['horario'].lower()}**. Tu asesor te escribirá por WhatsApp para confirmar la hora "
+                           "exacta. Mientras tanto, puedes hacer tu diagnóstico gratuito en la pestaña de al lado.")
+            else:
+                st.success("¡Gracias! Recibimos tu solicitud. Un asesor se pondrá en contacto contigo por el medio que "
+                           "autorizaste. Mientras tanto, puedes completar tu diagnóstico gratuito en la pestaña de al lado.")
             if submitted_n < MAX_SUBMISSIONS_PER_SESSION and st.button("Enviar otra solicitud"):
                 st.session_state.pop("public_lead_id", None)
                 st.rerun()
@@ -85,6 +93,10 @@ def render() -> None:
                 raw.update(attribution)
                 with session_scope() as s:
                     lead_id, errors, _dup = ingest(s, raw, channel="landing_publica", require_consent=True)
+                    if lead_id and raw.get("appt_date"):
+                        from database import sales_repository as srepo
+                        srepo.request_appointment(s, lead_id, raw["appt_date"], raw["appt_slot"], author="prospecto",
+                                                  channel="landing", confirm=False)
                     pending = st.session_state.pop("pending_diagnostic", None)
                     if lead_id and pending:
                         repo.save_diagnostic(s, pending["product"], pending["answers"], pending["result"],
@@ -95,6 +107,9 @@ def render() -> None:
                 else:
                     st.session_state["public_lead_id"] = lead_id
                     st.session_state["public_product"] = raw["product"]
+                    if raw.get("appt_date"):
+                        st.session_state["public_appt"] = {"fecha": raw["appt_date"].strftime("%d/%m/%Y"),
+                                                           "horario": raw["appt_slot"]}
                     st.session_state["public_submissions"] = submitted_n + 1
                     bump()
                     st.rerun()
@@ -189,7 +204,7 @@ def _assistant() -> None:
             c1, c2 = st.columns(2)
             d = c1.date_input("Día preferido", value=today_mx() + timedelta(days=1), min_value=today_mx(),
                               max_value=today_mx() + timedelta(days=60), format="DD/MM/YYYY")
-            slot = c2.selectbox("Horario", ["Mañana (9–12 h)", "Mediodía (12–15 h)", "Tarde (15–19 h)"])
+            slot = c2.selectbox("Horario", APPOINTMENT_SLOTS)
             c3, c4 = st.columns(2)
             ask_appt = c3.form_submit_button("Solicitar cita")
             ask_human = c4.form_submit_button("Prefiero que me contacte una persona")

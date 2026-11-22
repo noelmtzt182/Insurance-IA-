@@ -76,7 +76,8 @@ def render() -> None:
     st.markdown("##### Comercial")
     kpi_row([
         ("Leads calificados", m.fmt_int(k["qualified"]), m.fmt_pct(m.safe_div(k["qualified"], k["total"], 100))),
-        ("Citas", m.fmt_int(k["appointments"]), None),
+        ("Citas", m.fmt_int(k["appointments"]), m.fmt_pct(m.safe_div(k["appointments"], k["total"], 100)) + " de los leads"),
+        ("Costo por cita", m.fmt_money(acq["cost_per_appt"], 0), "Inversión / citas atribuidas"),
         ("Cotizaciones", m.fmt_int(k["quotes"]), None),
         ("Pólizas emitidas", m.fmt_int(k["policies"]), None),
         ("Conversión", m.fmt_pct(k["conversion"]), "Pólizas / leads"),

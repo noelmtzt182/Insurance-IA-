@@ -157,7 +157,7 @@ def _pick(manual, crm):
 
 CAMPAIGN_TABLE_COLS = ["id", "Campaña", "Plataforma", "Producto", "Segmento", "Estado", "Inversión", "Impresiones",
                        "Clics", "CTR %", "CPC", "Leads", "Calificados", "Citas", "Cotizaciones", "Pólizas",
-                       "Comisiones", "CPL", "CAC", "Conversión %", "ROAS comisiones", "Score promedio",
+                       "Comisiones", "CPL", "Costo por cita", "CAC", "Conversión %", "ROAS comisiones", "Score promedio",
                        "Origen de datos", "Origen resultados"]
 
 
@@ -184,14 +184,16 @@ def campaign_table(camps: pd.DataFrame, leads: pd.DataFrame) -> pd.DataFrame:
         imp = None if _is_missing(c.get("impressions")) else int(c["impressions"])
         clk = None if _is_missing(c.get("clicks")) else int(c["clicks"])
         m = campaign_metrics(inv, n_leads, n_pol, com, n_quotes, imp, clk)
+        n_appt = int(is_appointment(sub).sum()) if n else 0
         rows.append({
             "id": int(c["id"]), "Campaña": c["name"], "Plataforma": c["platform"], "Producto": c.get("product"),
             "Segmento": c.get("segment"), "Estado": c.get("status"), "Inversión": inv, "Impresiones": imp,
             "Clics": clk, "CTR %": m["CTR %"], "CPC": m["CPC"], "Leads": int(n_leads),
             "Calificados": int(is_qualified(sub).sum()) if n else 0,
-            "Citas": int(is_appointment(sub).sum()) if n else 0,
+            "Citas": n_appt,
             "Cotizaciones": int(n_quotes), "Pólizas": int(n_pol), "Comisiones": float(com),
-            "CPL": m["CPL"], "CAC": m["CAC"], "Conversión %": m["Conversión %"],
+            "CPL": m["CPL"], "Costo por cita": safe_div(inv, n_appt), "CAC": m["CAC"],
+            "Conversión %": m["Conversión %"],
             "ROAS comisiones": m["ROAS comisiones"],
             "Score promedio": float(sub["score"].mean()) if n else None,
             "Origen de datos": c.get("data_origin") or "Observado",
@@ -202,7 +204,7 @@ def campaign_table(camps: pd.DataFrame, leads: pd.DataFrame) -> pd.DataFrame:
 
 def overall_acquisition(ctable: pd.DataFrame) -> dict:
     keys = ["investment", "impressions", "clicks", "leads", "CTR", "CPC", "CPL", "CAC", "ROAS", "policies",
-            "commissions"]
+            "commissions", "appointments", "cost_per_appt"]
     if ctable.empty:
         return {k: None for k in keys}
     inv = ctable["Inversión"].sum(min_count=1)
@@ -214,7 +216,10 @@ def overall_acquisition(ctable: pd.DataFrame) -> dict:
     leads = int(ctable["Leads"].sum())
     pol = int(ctable["Pólizas"].sum())
     com = float(ctable["Comisiones"].sum())
+    appts = int(ctable["Citas"].sum())
     return {
+        "appointments": appts,
+        "cost_per_appt": safe_div(inv, appts),
         "investment": None if pd.isna(inv) else float(inv),
         "impressions": None if pd.isna(imp) else int(imp),
         "clicks": None if pd.isna(clk) else int(clk),

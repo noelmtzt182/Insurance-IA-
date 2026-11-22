@@ -65,7 +65,9 @@ SEGMENTS = [
 ]
 SEGMENT_OTHER = "Otro / prefiero no decir"
 
-OBJECTIVES = ["Generar leads", "Solicitudes de cotización", "Agendar citas", "Reconocimiento local"]
+OBJECTIVES = ["Agendar citas", "Generar leads", "Solicitudes de cotización", "Reconocimiento local"]
+APPOINTMENT_SLOTS = ["Mañana (9 a 12 h)", "Mediodía (12 a 15 h)", "Tarde (15 a 19 h)"]
+APPOINTMENT_ACTION_PREFIX = "Cita con el agente"
 CAMPAIGN_STATUS = ["Borrador", "Aprobada (pendiente de publicar)", "Activa (registrada por el usuario)", "Pausada", "Finalizada"]
 DATA_ORIGINS = ["Observado", "Importado", "Estimado", "Demo"]
 

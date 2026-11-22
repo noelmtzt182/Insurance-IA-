@@ -15,9 +15,9 @@ from services import sales_coach
 from services.whatsapp import wa_link
 from utils import data
 from utils.components import demo_banner, empty_state, flash, kpi_row, page_header
-from utils.config import ALL_STAGES, PRODUCTS, today_mx
+from utils.config import ALL_STAGES, APPOINTMENT_SLOTS, PRODUCTS, today_mx
 
-SLOTS = ["Mañana (9–12 h)", "Mediodía (12–15 h)", "Tarde (15–19 h)"]
+SLOTS = APPOINTMENT_SLOTS
 
 
 def lead_picker(leads: pd.DataFrame, key: str, active_only: bool = False) -> int | None:

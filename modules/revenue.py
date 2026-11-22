@@ -31,7 +31,9 @@ def render() -> None:
         return
     k = revenue.kpis(leads, camps, quotes)
     st.markdown("##### Ventas")
-    kpi_row([("Prospectos", fmt_int(k["prospects"]), None), ("Cotizaciones", fmt_int(k["quotes"]),
+    kpi_row([("Prospectos", fmt_int(k["prospects"]), None),
+             ("Citas agendadas", fmt_int(k["appointments"]), fmt_pct(k["appointment_rate"]) + " de los prospectos"),
+             ("Cotizaciones", fmt_int(k["quotes"]),
              f"{k['quoted_leads']:,} prospectos cotizados"), ("Pólizas emitidas", fmt_int(k["policies"]), None),
              ("Conversión", fmt_pct(k["conversion"]), "Pólizas / prospectos")])
     st.markdown("##### Prima vs. ingresos del agente")
@@ -40,7 +42,9 @@ def render() -> None:
              ("Comisiones cobradas", fmt_money(k["commission_collected"]), fmt_pct(k["collection_rate"]) + " de lo esperado"),
              ("Comisiones por cobrar", fmt_money(k["commission_pending"]), None)])
     st.markdown("##### Adquisición y rentabilidad")
-    kpi_row([("Costo de adquisición (CAC)", fmt_money(k["cac"]), "Inversión / pólizas"),
+    kpi_row([("Costo por cita", fmt_money(k["cost_per_appointment"]), "Inversión / citas"),
+             ("Citas que llegan a cotización", fmt_pct(k["appt_to_quote"]), None),
+             ("Costo de adquisición (CAC)", fmt_money(k["cac"]), "Inversión / pólizas"),
              ("ROAS (comisión esperada)", fmt_ratio(k["roas_expected"]), None),
              ("ROAS (comisión cobrada)", fmt_ratio(k["roas_collected"]), None),
              ("Resultado neto cobrado", fmt_money(k["net_profit_collected"]), "Comisión cobrada − inversión")])

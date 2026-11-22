@@ -10,10 +10,11 @@ from typing import Optional
 
 import pandas as pd
 
-from utils.config import CLOSED_STAGES, today_mx
+from utils.config import APPOINTMENT_ACTION_PREFIX, CLOSED_STAGES, today_mx
 from utils.dates import day
 
 ALERT_TYPES = {
+    "Solicitud de cita por confirmar": "Confirma la cita por WhatsApp hoy y cambia la etapa a «Cita agendada».",
     "Lead nuevo sin contactar": "Haz el primer contacto (llamada o WhatsApp) y registra la actividad.",
     "Alta intención de compra": "Propón una cita y solicita cotizaciones oficiales.",
     "Cotización sin respuesta": "Pregunta si pudo revisarla y qué dudas tiene; ofrece una explicación guiada.",
@@ -24,7 +25,15 @@ ALERT_TYPES = {
 }
 PRIORITY_ORDER = {"Alta": 0, "Media": 1, "Baja": 2}
 COLUMNS = ["lead_id", "Prospecto", "Producto", "Etapa", "Score", "Alerta", "Motivo", "Prioridad",
-           "Acción recomendada", "Fecha de seguimiento", "Teléfono", "Consentimiento"]
+           "Acción recomendada", "Fecha de seguimiento", "Cita solicitada", "Teléfono", "Consentimiento"]
+ALERT_ORDER = {a: i for i, a in enumerate(ALERT_TYPES)}
+
+
+def requested_slot(next_action) -> str | None:
+    """Horario pedido por el prospecto, guardado como «Cita con el agente (Tarde …)»."""
+    if isinstance(next_action, str) and next_action.startswith(APPOINTMENT_ACTION_PREFIX + " ("):
+        return next_action[len(APPOINTMENT_ACTION_PREFIX) + 2:-1]
+    return None
 
 
 def build_alerts(leads: pd.DataFrame, quotes: pd.DataFrame, objections: Optional[pd.DataFrame] = None,
@@ -41,13 +50,18 @@ def build_alerts(leads: pd.DataFrame, quotes: pd.DataFrame, objections: Optional
     last_contact = day(act["last_contact_at"])
     rows = []
 
-    def add(row, alert, motivo, prioridad, fecha):
+    def add(row, alert, motivo, prioridad, fecha, cita=None):
         rows.append({"lead_id": int(row["id"]), "Prospecto": row["name"], "Producto": row["product"],
                      "Etapa": row["stage"], "Score": int(row["score"]), "Alerta": alert, "Motivo": motivo,
                      "Prioridad": prioridad, "Acción recomendada": ALERT_TYPES[alert], "Fecha de seguimiento": fecha,
-                     "Teléfono": row["phone"], "Consentimiento": bool(row["consent_contact"])})
+                     "Cita solicitada": cita, "Teléfono": row["phone"], "Consentimiento": bool(row["consent_contact"])})
 
     for i, r in act.iterrows():
+        slot = requested_slot(r["next_action"])
+        if slot and r["stage"] in ("Nuevo", "Contactado", "Calificado"):
+            when = f"{nad[i]:%d/%m/%Y}" if pd.notna(nad[i]) else "fecha por definir"
+            add(r, "Solicitud de cita por confirmar", f"Pidió asesoría para el {when}, horario: {slot.lower()}.",
+                "Alta", today, f"{when} · {slot}")
         age = (T - created[i]).days if pd.notna(created[i]) else 0
         if r["stage"] == "Nuevo" and pd.isna(last_contact[i]):
             pr = "Alta" if age >= 1 or r["score"] >= 80 else "Media"
@@ -105,7 +119,9 @@ def build_alerts(leads: pd.DataFrame, quotes: pd.DataFrame, objections: Optional
         return df
     df = df.drop_duplicates(["lead_id", "Alerta"])
     df["_p"] = df["Prioridad"].map(PRIORITY_ORDER)
-    return df.sort_values(["_p", "Score"], ascending=[True, False]).drop(columns="_p").reset_index(drop=True)
+    df["_o"] = df["Alerta"].map(ALERT_ORDER)
+    return df.sort_values(["_p", "_o", "Score"], ascending=[True, True, False]).drop(columns=["_p", "_o"]) \
+        .reset_index(drop=True)
 
 
 def daily_priorities(alerts: pd.DataFrame, limit: int = 20) -> pd.DataFrame:

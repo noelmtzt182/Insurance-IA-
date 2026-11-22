@@ -16,7 +16,8 @@ from utils.theme import SERIES
 
 FMT = {"Inversión": st.column_config.NumberColumn(format="$%,.0f"),
        "CPC": st.column_config.NumberColumn(format="$%.2f"), "CPL": st.column_config.NumberColumn(format="$%,.2f"),
-       "CAC": st.column_config.NumberColumn(format="$%,.0f"), "Comisiones": st.column_config.NumberColumn(format="$%,.0f"),
+       "CAC": st.column_config.NumberColumn(format="$%,.0f"),
+       "Costo por cita": st.column_config.NumberColumn(format="$%,.0f"), "Comisiones": st.column_config.NumberColumn(format="$%,.0f"),
        "CTR %": st.column_config.NumberColumn(format="%.2f%%"),
        "Conversión %": st.column_config.NumberColumn(format="%.1f%%"),
        "ROAS comisiones": st.column_config.NumberColumn(format="%.2fx"),
@@ -85,7 +86,8 @@ def render() -> None:
     acq = m.overall_acquisition(ct)
     kpi_row([("Inversión", m.fmt_money(acq["investment"]), None), ("CTR", m.fmt_pct(acq["CTR"], 2), None),
              ("CPC", m.fmt_money(acq["CPC"], 2), None), ("CPL", m.fmt_money(acq["CPL"], 2), None),
-             ("CAC", m.fmt_money(acq["CAC"]), None), ("ROAS comisiones", m.fmt_ratio(acq["ROAS"]), None)])
+             ("Costo por cita", m.fmt_money(acq["cost_per_appt"]), None), ("CAC", m.fmt_money(acq["CAC"]), None),
+             ("ROAS comisiones", m.fmt_ratio(acq["ROAS"]), None)])
 
     t1, t2, t3, t4 = st.tabs(["Resultados", "Registrar campaña", "Editar / eliminar", "Importar métricas CSV"])
     with t1:

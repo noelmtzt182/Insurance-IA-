@@ -60,6 +60,17 @@ AUDIENCE_COPY = {
     "Pequeñas y medianas empresas": ("pymes", "para tu equipo de trabajo"),
 }
 
+# Ganchos para el objetivo «Agendar citas»: la oferta es la asesoría, no el seguro
+# (ángulo, gancho corto ≤ 30 caracteres, gancho largo, descripción con {short}, {aud_name}, {location})
+APPOINTMENT_ANGLES = [
+    ("Asesoría gratuita", "Agenda tu asesoría gratis", "Agenda tu asesoría gratuita",
+     "Elige día y horario. Un asesor te orienta sobre tu {short}, sin compromiso."),
+    ("Revisión de tu protección", "Revisión gratuita de 20 min", "Revisa gratis tu protección familiar",
+     "En 20 minutos revisamos qué necesitas proteger y tus opciones. Agenda hoy."),
+    ("Experto a tu lado", "Habla con un asesor", "Resuelve tus dudas con un asesor",
+     "Para {aud_name} en {location}: agenda una llamada y resuelve tus dudas."),
+]
+
 # (ángulo, gancho corto ≤ 30 caracteres, gancho largo para redes sociales)
 ANGLES = [
     ("Protección familiar", "Protege lo que más importa", "Protege lo que más importa"),
@@ -170,7 +181,13 @@ def generate_with_templates(inputs: dict) -> tuple[dict, list[dict]]:
             "Reconocimiento local": ["Conocer más", "Hacer diagnóstico"]}.get(objective, ["Más información"])
 
     variants = []
-    for i, (angle, short_hook, long_hook) in enumerate(ANGLES[:4]):
+    if objective == "Agendar citas":
+        for i, (angle, short_hook, long_hook, desc_tpl) in enumerate(APPOINTMENT_ANGLES):
+            head = short_hook if lim["headline"] <= 30 else long_hook
+            desc = desc_tpl.format(short=pc["short"], aud_name=aud_name, location=location)
+            variants.append({"angle": angle, "headline": _fit(head, lim["headline"]),
+                             "description": _fit(desc, lim["description"]), "cta": ctas[i % len(ctas)]})
+    for i, (angle, short_hook, long_hook) in enumerate(ANGLES[:4] if objective != "Agendar citas" else []):
         hook = short_hook if lim["headline"] <= 30 else long_hook
         if angle == "Protección familiar":
             head = hook
@@ -198,6 +215,7 @@ def generate_with_templates(inputs: dict) -> tuple[dict, list[dict]]:
         "ctas": ctas,
         "landing_structure": [
             "Encabezado: «Protege lo que más importa» + subtítulo específico del segmento.",
+            "Botón principal «Agenda tu asesoría gratuita» con selección de día y horario.",
             "Beneficios (3 bloques) sin precios ni promesas de cobertura.",
             "Diagnóstico gratuito (cuestionario de 7 preguntas, sin datos médicos).",
             "Formulario breve: nombre, teléfono, correo, ciudad, producto, presupuesto, fecha estimada.",

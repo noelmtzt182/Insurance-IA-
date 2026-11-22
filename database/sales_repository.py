@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from database import repository as repo
 from database.models import AgentMessage, KnowledgeItem, Lead, Note, Objection, Quotation
-from utils.config import PRODUCT_GMM, now_mx, today_mx
+from utils.config import APPOINTMENT_ACTION_PREFIX, PRODUCT_GMM, now_mx, today_mx
 
 MAX_PDF_BYTES = 5 * 1024 * 1024
 QUOTE_STATUSES = ["Registrada", "Enviada", "Aceptada", "Rechazada", "Vencida"]
@@ -248,7 +248,7 @@ def request_appointment(s: Session, lead_id: int, preferred: date, slot: str, au
     if lead is None:
         raise ValueError("Lead no encontrado.")
     lead.contact_requested = True
-    action = f"Cita con el agente ({slot})"
+    action = f"{APPOINTMENT_ACTION_PREFIX} ({slot})"
     repo.set_next_action(s, lead_id, action, preferred, author=author)
     if confirm:
         if lead.stage not in ("Cotización enviada", "Negociación", "Póliza emitida"):
